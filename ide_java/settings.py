@@ -23,9 +23,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-*tev3jsa%4n-fa6s&$ob1oy=9nlttko9td#3+#o-2n&e%w=v*q'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = True
 
-ALLOWED_HOSTS = ['ide_java_E-Cherica.onrender.com']
+ALLOWED_HOSTS = ['ide_java_E-Cherica.onrender.com', 'localhost','127.0.0.1']
 
 
 # Application definition
@@ -70,6 +70,12 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'ide_java.wsgi.application'
 
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.sqlite3',  # Le moteur pour SQLite
+        'NAME': BASE_DIR / 'db.sqlite3',        # Le chemin vers la base de données
+    }
+}
 
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases

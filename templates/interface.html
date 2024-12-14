@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IDE Java E-CHERICA</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- CodeMirror Dependencies -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/codemirror.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/mode/clike/clike.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/theme/monokai.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/theme/eclipse.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/addon/lint/lint.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/addon/lint/lint.min.js"></script>
+ 
+    <script>
+        let editor;
+        let currentTheme = 'monokai'; // Par défaut, thème sombre
+    
+        // Ajoutez la fonction lintJava ici
+        function lintJava(content, updateLinting) {
+            const errors = [];
+            const lines = content.split('\n');
+            let openBraces = 0;
+
+            lines.forEach((line, index) => {
+                const trimmedLine = line.trim();
+
+                // Ignorer les lignes qui sont des commentaires
+                if (trimmedLine.startsWith("//") || trimmedLine.startsWith("/*") || trimmedLine.endsWith("*/")) {
+                    return; // Ne pas traiter les commentaires
+                }
+
+                // Vérification des points-virgules manquants
+                if (!trimmedLine.endsWith(';') && trimmedLine !== '' && !trimmedLine.endsWith('{') && !trimmedLine.endsWith('}')) {
+                    errors.push({
+                        from: CodeMirror.Pos(index, 0),
+                        to: CodeMirror.Pos(index, line.length),
+                        message: "Point-virgule manquant à la fin de la ligne.",
+                        severity: "error"
+                    });
+                }
+
+                // Vérification des parenthèses déséquilibrées
+                const openParentheses = (line.match(/\(/g) || []).length;
+                const closeParentheses = (line.match(/\)/g) || []).length;
+                if (openParentheses !== closeParentheses) {
+                    errors.push({
+                        from: CodeMirror.Pos(index, 0),
+                        to: CodeMirror.Pos(index, line.length),
+                        message: "Parenthèses déséquilibrées.",
+                        severity: "error"
+                    });
+                }
+
+                // Vérification des accolades déséquilibrées
+                openBraces += (line.match(/{/g) || []).length;
+                openBraces -= (line.match(/}/g) || []).length;
+
+                // Vérification des chaînes de caractères non fermées
+                const openQuotes = (line.match(/"/g) || []).length;
+                if (openQuotes % 2 !== 0) {
+                    errors.push({
+                        from: CodeMirror.Pos(index, 0),
+                        to: CodeMirror.Pos(index, line.length),
+                        message: "Chaîne de caractères non fermée.",
+                        severity: "error"
+                    });
+                }
+
+                // Vérification des mots-clés Java manquants
+                if (trimmedLine.startsWith('public') && !trimmedLine.includes('class') && !trimmedLine.includes('static')) {
+                    errors.push({
+                        from: CodeMirror.Pos(index, 0),
+                        to: CodeMirror.Pos(index, line.length),
+                        message: "Déclaration incorrecte. Mot-clé 'class' ou 'static' attendu.",
+                        severity: "error"
+                    });
+                }
+            });
+
+            // Vérification globale des accolades après la boucle
+            if (openBraces !== 0) {
+                errors.push({
+                    from: CodeMirror.Pos(lines.length - 1, 0),
+                    to: CodeMirror.Pos(lines.length - 1, 0),
+                    message: "Accolades déséquilibrées dans le code.",
+                    severity: "error"
+                });
+            }
+
+            updateLinting(errors);
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            editor = CodeMirror.fromTextArea(document.getElementById('code_java'), {
+                mode: 'text/x-java',
+                theme: currentTheme,
+                lineNumbers: true,
+                matchBrackets: true,
+                autoCloseBrackets: true,
+                lint: {
+                    getAnnotations: lintJava, // Fonction personnalisée pour le linting
+                    async: true,
+                },
+            });
+            editor.setSize('100%', '100%');
+        });
+
+        function toggleTheme() {
+            currentTheme = currentTheme === 'monokai' ? 'eclipse' : 'monokai';
+            editor.setOption('theme', currentTheme);
+
+            const themeIcon = document.getElementById('themeIcon');
+            themeIcon.innerHTML = currentTheme === 'monokai'
+                ? `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                         d="M12 3v2m0 14v2m9-9h-2M5 12H3m15.364-6.364l-1.414 1.414M6.343 17.657l-1.414-1.414M17.657 17.657l1.414-1.414M6.343 6.343L4.93 4.93M12 5a7 7 0 100 14 7 7 0 000-14z" />`
+                : `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                         d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" />`;
+        }
+
+        async function compiler() {
+            const codeJava = editor.getValue();
+            const response = await fetch('/compiler_code/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: new URLSearchParams({
+                    'code_java': codeJava
+                })
+            });
+            const data = await response.json();
+            document.getElementById('resultat').innerText = data.resultat || '';
+            document.getElementById('erreurs').innerText = data.erreurs || '';
+            document.getElementById('solution').innerText = data.solution || '';
+            document.getElementById('commentaire').innerText = data.commentaire || '';
+        }
+    </script>
+    
+</head>
+<style>
+    @keyframes glowing {
+        0% { text-shadow: 0 0 5px #fff, 0 0 10px #fff, 0 0 15px #0073e6, 0 0 20px #0073e6, 0 0 25px #0073e6, 0 0 30px #0073e6, 0 0 35px #0073e6; }
+        50% { text-shadow: 0 0 10px #fff, 0 0 20px #fff, 0 0 30px #0073e6, 0 0 40px #0073e6, 0 0 50px #0073e6, 0 0 60px #0073e6, 0 0 70px #0073e6; }
+        100% { text-shadow: 0 0 5px #fff, 0 0 10px #fff, 0 0 15px #0073e6, 0 0 20px #0073e6, 0 0 25px #0073e6, 0 0 30px #0073e6, 0 0 35px #0073e6; }
+    }
+    .glow-title {
+        animation: glowing 3s ease-in-out infinite;
+    }
+    .code-editor {
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 0 20px rgba(0, 115, 230, 0.3);
+        transition: box-shadow 0.3s ease;
+    }
+    .code-editor:hover {
+        box-shadow: 0 0 30px rgba(0, 115, 230, 0.5);
+    }
+    .result-box {
+        transition: all 0.3s ease;
+    }
+    .result-box:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+    }
+    .compile-button {
+        transition: all 0.3s ease;
+    }
+    .compile-button:hover {
+        transform: scale(1.05);
+    }
+</style>
+<body class="bg-gradient-to-r from-gray-800 to-gray-900 text-white min-h-screen flex flex-col items-center p-6">
+    <h1 class="text-4xl font-bold text-blue-400 mb-8 glow-title">IDE Java E-CHERICA</h1>
+
+    <div class="grid grid-cols-4 gap-6 w-full max-w-8xl">
+        <!-- Zone d'édition et de résultat (3/4 de largeur) -->
+        <div class="col-span-3 bg-gray-700 p-6 rounded-lg shadow-lg flex flex-col h-[850px]">
+            <!-- CodeMirror Wrapper -->
+            <textarea id="code_java" placeholder="// Écrivez votre code Java ici"></textarea>
+
+            <div class="flex justify-between items-center mt-4 w-full">
+                <!-- Le bouton Compiler reste centré -->
+                <div class="flex-grow flex justify-center">
+                    <button onclick="compiler()" 
+                            class="px-6 py-2 bg-blue-500 text-white font-semibold rounded-lg shadow-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2">
+                        Compiler
+                    </button>
+                </div>
+            
+                
+                <button id="themeButton" onclick="toggleTheme()" 
+                        class="w-10 h-10 bg-gray-500 text-white rounded-full flex items-center justify-center shadow-md hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 ml-auto">
+                    <!-- Icône SVG -->
+                    <svg id="themeIcon" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                              d="M12 3v2m0 14v2m9-9h-2M5 12H3m15.364-6.364l-1.414 1.414M6.343 17.657l-1.414-1.414M17.657 17.657l1.414-1.414M6.343 6.343L4.93 4.93M12 5a7 7 0 100 14 7 7 0 000-14z" />
+                    </svg>
+                </button>
+            </div>
+            
+
+            <div class="mt-6">
+                <h2 class="text-2xl font-semibold text-green-400">Résultat :</h2>
+                <pre id="resultat" class="bg-gray-800 border border-gray-600 rounded-lg p-4 mt-2 text-white h-40 overflow-y-auto"></pre>
+            </div>
+        </div>
+
+    
+        <div class="col-span-1 flex flex-col gap-6">
+            <div class="bg-gray-700 shadow-lg rounded-lg p-6 border border-gray-600">
+                <h2 class="text-xl font-semibold text-red-400">Erreurs :</h2>
+                <pre id="erreurs" class="mt-2 text-white whitespace-pre-wrap"></pre>
+            </div>
+
+            <div class="bg-gray-700 shadow-lg rounded-lg p-6 border border-gray-600">
+                <h2 class="text-xl font-semibold text-yellow-400">Solution :</h2>
+                <pre id="solution" class="mt-2 text-white whitespace-pre-wrap">Solution en cas d'erreurs.</pre>
+            </div>
+            <div class="bg-gray-700 shadow-lg rounded-lg p-6 border border-gray-600">
+                <h2 class="text-xl font-semibold text-green-400">Commentaire :</h2>
+                <pre id="commentaire" class="mt-2 text-white whitespace-pre-wrap">Proposition de commentaire ou conseil pour améliorer le code.</pre>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

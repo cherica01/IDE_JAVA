@@ -72,10 +72,8 @@ WSGI_APPLICATION = 'ide_java.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',  # Le moteur pour SQLite
-        'NAME': BASE_DIR / 'db.sqlite3',        # Le chemin vers la base de données
-    }
-}
+        'ENGINE': 'django.db.backends.dummy',  
+} }
 
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases

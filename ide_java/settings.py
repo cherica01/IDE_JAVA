@@ -62,9 +62,11 @@ WSGI_APPLICATION = 'ide_java.wsgi.application'
 # Database settings (dummy backend for no database)
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.dummy',  # Dummy backend since no database is used
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
+
 
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [

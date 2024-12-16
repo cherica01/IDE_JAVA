@@ -14,7 +14,6 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/theme/eclipse.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/addon/lint/lint.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/addon/lint/lint.min.js"></script>
- 
     <script>
         let editor;
         let currentTheme = 'monokai'; // Par défaut, thème sombre
@@ -140,7 +139,6 @@
             document.getElementById('commentaire').innerText = data.commentaire || '';
         }
     </script>
-    
 </head>
 <style>
     @keyframes glowing {
@@ -151,58 +149,31 @@
     .glow-title {
         animation: glowing 3s ease-in-out infinite;
     }
-    .code-editor {
-        border-radius: 8px;
-        overflow: hidden;
-        box-shadow: 0 0 20px rgba(0, 115, 230, 0.3);
-        transition: box-shadow 0.3s ease;
-    }
-    .code-editor:hover {
-        box-shadow: 0 0 30px rgba(0, 115, 230, 0.5);
-    }
-    .result-box {
-        transition: all 0.3s ease;
-    }
-    .result-box:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
-    }
-    .compile-button {
-        transition: all 0.3s ease;
-    }
-    .compile-button:hover {
-        transform: scale(1.05);
-    }
 </style>
-<body class="bg-gradient-to-r from-gray-800 to-gray-900 text-white min-h-screen flex flex-col items-center p-6">
-    <h1 class="text-4xl font-bold text-blue-400 mb-8 glow-title">IDE Java E-CHERICA</h1>
+<body class="bg-gradient-to-r from-gray-800 to-gray-900 text-white min-h-screen flex flex-col items-center p-4">
+    <h1 class="text-4xl font-bold text-blue-400 mb-6 glow-title">IDE Java E-CHERICA</h1>
 
-    <div class="grid grid-cols-4 gap-6 w-full max-w-8xl">
-        <!-- Zone d'édition et de résultat (3/4 de largeur) -->
-        <div class="col-span-3 bg-gray-700 p-6 rounded-lg shadow-lg flex flex-col h-[850px]">
-            <!-- CodeMirror Wrapper -->
+    <div class="grid grid-cols-1 lg:grid-cols-4 gap-4 w-full max-w-7xl">
+        <!-- Zone d'édition et de résultat -->
+        <div class="lg:col-span-3 bg-gray-700 p-4 rounded-lg shadow-lg flex flex-col h-[850px]">
+            <!-- Éditeur de code -->
             <textarea id="code_java" placeholder="// Écrivez votre code Java ici"></textarea>
 
             <div class="flex justify-between items-center mt-4 w-full">
-                <!-- Le bouton Compiler reste centré -->
                 <div class="flex-grow flex justify-center">
                     <button onclick="compiler()" 
-                            class="px-6 py-2 bg-blue-500 text-white font-semibold rounded-lg shadow-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2">
+                            class="px-6 py-2 bg-blue-500 text-white font-semibold rounded-lg shadow-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 compile-button">
                         Compiler
                     </button>
                 </div>
-            
-                
                 <button id="themeButton" onclick="toggleTheme()" 
-                        class="w-10 h-10 bg-gray-500 text-white rounded-full flex items-center justify-center shadow-md hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 ml-auto">
-                    <!-- Icône SVG -->
+                        class="w-10 h-10 bg-gray-500 text-white rounded-full flex items-center justify-center shadow-md hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 ml-2">
                     <svg id="themeIcon" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
                               d="M12 3v2m0 14v2m9-9h-2M5 12H3m15.364-6.364l-1.414 1.414M6.343 17.657l-1.414-1.414M17.657 17.657l1.414-1.414M6.343 6.343L4.93 4.93M12 5a7 7 0 100 14 7 7 0 000-14z" />
                     </svg>
                 </button>
             </div>
-            
 
             <div class="mt-6">
                 <h2 class="text-2xl font-semibold text-green-400">Résultat :</h2>
@@ -210,18 +181,17 @@
             </div>
         </div>
 
-    
-        <div class="col-span-1 flex flex-col gap-6">
-            <div class="bg-gray-700 shadow-lg rounded-lg p-6 border border-gray-600">
+        <!-- Zone d'affichage des erreurs et solutions -->
+        <div class="lg:col-span-1 flex flex-col gap-4">
+            <div class="bg-gray-700 shadow-lg rounded-lg p-4">
                 <h2 class="text-xl font-semibold text-red-400">Erreurs :</h2>
                 <pre id="erreurs" class="mt-2 text-white whitespace-pre-wrap"></pre>
             </div>
-
-            <div class="bg-gray-700 shadow-lg rounded-lg p-6 border border-gray-600">
+            <div class="bg-gray-700 shadow-lg rounded-lg p-4">
                 <h2 class="text-xl font-semibold text-yellow-400">Solution :</h2>
                 <pre id="solution" class="mt-2 text-white whitespace-pre-wrap">Solution en cas d'erreurs.</pre>
             </div>
-            <div class="bg-gray-700 shadow-lg rounded-lg p-6 border border-gray-600">
+            <div class="bg-gray-700 shadow-lg rounded-lg p-4">
                 <h2 class="text-xl font-semibold text-green-400">Commentaire :</h2>
                 <pre id="commentaire" class="mt-2 text-white whitespace-pre-wrap">Proposition de commentaire ou conseil pour améliorer le code.</pre>
             </div>
